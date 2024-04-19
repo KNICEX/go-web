@@ -58,6 +58,11 @@ func TestRouter_addRouter(t *testing.T) {
 			},
 		},
 		{
+			method:   http.MethodPost,
+			path:     "/order/detail/:id",
+			handlers: []HandleFunc{mockHandler},
+		},
+		{
 			method: http.MethodPost,
 			path:   "/order/*",
 			handlers: []HandleFunc{
@@ -118,6 +123,10 @@ func TestRouter_addRouter(t *testing.T) {
 							{
 								path:     "detail",
 								handlers: []HandleFunc{mockHandler},
+								paramChild: &node{
+									path:     ":id",
+									handlers: []HandleFunc{mockHandler},
+								},
 							},
 							{
 								path:     "detail1",
@@ -157,9 +166,27 @@ func TestRouter_addRouter(t *testing.T) {
 		r.addRoute(http.MethodGet, "/", mockHandler)
 	}, "duplicated path")
 
+	// 通配符节点重复注册panic
+	r = newRouter()
+	r.addRoute(http.MethodGet, "/user/:id", mockHandler)
+	assert.Panicsf(t, func() {
+		r.addRoute(http.MethodGet, "/user/*", mockHandler)
+	}, "can't register wildcard and param node at the same time")
+
+	// 非同名路径参数节点重复注册panic
+	r = newRouter()
+	r.addRoute(http.MethodGet, "/user/:id", mockHandler)
+	assert.Panicsf(t, func() {
+		r.addRoute(http.MethodGet, "/user/:name", mockHandler)
+	}, "can't register two param nodes at the same level")
 }
 
 func (n *node) equal(y *node) (string, bool) {
+
+	if y == nil {
+		return "y is nil", false
+	}
+
 	if n.path != y.path {
 		return "path 不相同", false
 	}
@@ -169,6 +196,20 @@ func (n *node) equal(y *node) (string, bool) {
 
 	if len(n.handlers) != len(y.handlers) {
 		return "handlers 数量不相同", false
+	}
+
+	if n.startChild != nil {
+		msg, equal := n.startChild.equal(y.startChild)
+		if !equal {
+			return msg, false
+		}
+	}
+
+	if n.paramChild != nil {
+		msg, equal := n.paramChild.equal(y.paramChild)
+		if !equal {
+			return msg, false
+		}
 	}
 
 	for i := 0; i < len(n.handlers); i++ {
@@ -254,6 +295,11 @@ func TestRouter_findRoute(t *testing.T) {
 			},
 		},
 		{
+			method:   http.MethodPost,
+			path:     "/order/detail/:id",
+			handlers: []HandleFunc{mockHandler},
+		},
+		{
 			method: http.MethodPost,
 			path:   "/order/*",
 			handlers: []HandleFunc{
@@ -294,16 +340,19 @@ func TestRouter_findRoute(t *testing.T) {
 		method    string
 		path      string
 		wantFound bool
-		wantNode  *node
+		info      *matchInfo
 	}{
 		{
 			name:      "order detail",
 			method:    http.MethodPost,
 			path:      "/order/detail",
 			wantFound: true,
-			wantNode: &node{
-				path:     "detail",
-				handlers: []HandleFunc{mockHandler},
+			info: &matchInfo{
+				node: &node{
+					path:     "detail",
+					handlers: []HandleFunc{mockHandler},
+				},
+				pathParams: map[string]string{},
 			},
 		},
 
@@ -312,15 +361,18 @@ func TestRouter_findRoute(t *testing.T) {
 			method:    http.MethodPost,
 			path:      "/order",
 			wantFound: true,
-			wantNode: &node{
-				path:     "order",
-				handlers: []HandleFunc{mockHandler},
-				children: []*node{
-					{
-						path:     "detail",
-						handlers: []HandleFunc{mockHandler},
+			info: &matchInfo{
+				node: &node{
+					path:     "order",
+					handlers: []HandleFunc{mockHandler},
+					children: []*node{
+						{
+							path:     "detail",
+							handlers: []HandleFunc{mockHandler},
+						},
 					},
 				},
+				pathParams: map[string]string{},
 			},
 		},
 		{
@@ -328,9 +380,25 @@ func TestRouter_findRoute(t *testing.T) {
 			method:    http.MethodPost,
 			path:      "/order/123",
 			wantFound: true,
-			wantNode: &node{
-				path:     "*",
-				handlers: []HandleFunc{mockHandler},
+			info: &matchInfo{
+				node: &node{
+					path:     "*",
+					handlers: []HandleFunc{mockHandler},
+				},
+				pathParams: map[string]string{},
+			},
+		},
+		{
+			name:      "order detail :id",
+			method:    http.MethodPost,
+			path:      "/order/detail/123",
+			wantFound: true,
+			info: &matchInfo{
+				node: &node{
+					path:     ":id",
+					handlers: []HandleFunc{mockHandler},
+				},
+				pathParams: map[string]string{"id": "123"},
 			},
 		},
 		{
@@ -338,9 +406,12 @@ func TestRouter_findRoute(t *testing.T) {
 			method:    http.MethodPost,
 			path:      "/post/123/detail",
 			wantFound: true,
-			wantNode: &node{
-				path:     "detail",
-				handlers: []HandleFunc{mockHandler},
+			info: &matchInfo{
+				node: &node{
+					path:     "detail",
+					handlers: []HandleFunc{mockHandler},
+				},
+				pathParams: map[string]string{},
 			},
 		},
 
@@ -366,9 +437,8 @@ func TestRouter_findRoute(t *testing.T) {
 			if !found {
 				return
 			}
-			assert.Equal(t, tc.wantNode.path, n.path)
-			assert.Equal(t, len(tc.wantNode.handlers), len(n.handlers))
-
+			assert.Equal(t, tc.info.node.path, n.node.path)
+			assert.Equal(t, tc.info.pathParams, n.pathParams)
 		})
 	}
 }

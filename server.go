@@ -34,13 +34,14 @@ func (s *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Engine) serve(ctx *Context) {
-	n, ok := s.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
-	if !ok || n.handlers == nil {
+	info, ok := s.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	if !ok || info.node.handlers == nil {
 		ctx.Resp.WriteHeader(http.StatusNotFound)
 		_, _ = ctx.Resp.Write([]byte("404 NOT FOUND"))
 		return
 	}
-	for _, h := range n.handlers {
+	ctx.PathParams = info.pathParams
+	for _, h := range info.node.handlers {
 		h(ctx)
 	}
 }
