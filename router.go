@@ -9,7 +9,9 @@ type router struct {
 }
 
 type node struct {
-	path     string
+	path string
+	// 注册的路由字符串
+	route    string
 	children []*node
 	// 通配符
 	startChild *node
@@ -54,6 +56,7 @@ func (r *router) addRoute(method string, path string, handlers ...HandleFunc) {
 	if root.handlers != nil {
 		panic("duplicated path")
 	}
+	root.route = path
 	root.handlers = append(root.handlers, handlers...)
 }
 

@@ -13,6 +13,8 @@ type Context struct {
 	Resp        http.ResponseWriter
 	PathParams  map[string]string
 	queryValues url.Values
+
+	MatchedRoute string
 }
 
 func (c *Context) RespJSON(status int, val any) error {
@@ -84,4 +86,12 @@ func (c *Context) QueryValue(key string) (string, bool) {
 func (c *Context) PathValue(key string) (string, bool) {
 	res, ok := c.PathParams[key]
 	return res, ok
+}
+
+func (c *Context) Next() {
+
+}
+
+func (c *Context) Abort() {
+
 }
