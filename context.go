@@ -1,14 +1,87 @@
 package web
 
-import "net/http"
+import (
+	"encoding/json"
+	"errors"
+	"mime/multipart"
+	"net/http"
+	"net/url"
+)
 
 type Context struct {
-	Req        *http.Request
-	Resp       http.ResponseWriter
-	PathParams map[string]string
+	Req         *http.Request
+	Resp        http.ResponseWriter
+	PathParams  map[string]string
+	queryValues url.Values
 }
 
-func (c *Context) Param(key string) (string, bool) {
+func (c *Context) RespJSON(status int, val any) error {
+	data, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+	c.Resp.Header().Set("Content-Type", "application/json")
+	c.Resp.WriteHeader(status)
+
+	_, err = c.Resp.Write(data)
+	return err
+}
+
+func (c *Context) RespJsonOK(val any) error {
+	return c.RespJSON(http.StatusOK, val)
+}
+
+func (c *Context) SetCookie(cookie *http.Cookie) {
+	http.SetCookie(c.Resp, cookie)
+}
+
+func (c *Context) GetCookie(name string) (*http.Cookie, bool) {
+	cookie, err := c.Req.Cookie(name)
+	if err != nil {
+		return nil, false
+	}
+	return cookie, true
+}
+
+func (c *Context) BindJSON(val any) error {
+	if val == nil {
+		return errors.New("nil pointer")
+	}
+	return json.NewDecoder(c.Req.Body).Decode(val)
+}
+
+func (c *Context) FormValue(key string) (string, bool) {
+	err := c.Req.ParseForm()
+	if err != nil {
+		return "", false
+	}
+	vals, ok := c.Req.Form[key]
+	if !ok {
+		return "", false
+	}
+	return vals[0], true
+}
+
+func (c *Context) MultipartForm() (*multipart.Form, error) {
+	err := c.Req.ParseMultipartForm(32 << 20)
+	if err != nil {
+		return nil, err
+	}
+	return c.Req.MultipartForm, nil
+}
+
+func (c *Context) QueryValue(key string) (string, bool) {
+	if c.queryValues == nil {
+		c.queryValues = c.Req.URL.Query()
+	}
+	vals, ok := c.queryValues[key]
+	if !ok {
+		return "", false
+	}
+	return vals[0], true
+}
+
+func (c *Context) PathValue(key string) (string, bool) {
 	res, ok := c.PathParams[key]
 	return res, ok
 }
