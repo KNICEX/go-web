@@ -29,6 +29,14 @@ func (c *Context) RespJSON(status int, val any) error {
 	return err
 }
 
+func (c *Context) RespString(status int, val string) error {
+	c.Resp.Header().Set("Content-Type", "text/plain")
+	c.Resp.WriteHeader(status)
+
+	_, err := c.Resp.Write([]byte(val))
+	return err
+}
+
 func (c *Context) RespJsonOK(val any) error {
 	return c.RespJSON(http.StatusOK, val)
 }

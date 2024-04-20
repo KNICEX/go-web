@@ -19,13 +19,18 @@ type EngineOption func(*Engine)
 
 type Engine struct {
 	*router
-	*RouterGroup
+	RouterGroup
 }
 
 func NewEngine(opts ...EngineOption) *Engine {
 	res := &Engine{
 		router: newRouter(),
+		RouterGroup: RouterGroup{
+			basePath: "/",
+		},
 	}
+	res.RouterGroup.engine = res
+
 	for _, opt := range opts {
 		opt(res)
 	}
