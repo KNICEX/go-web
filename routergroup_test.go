@@ -7,6 +7,23 @@ import (
 	"testing"
 )
 
+var _ http.ResponseWriter = &MockWriter{}
+
+type MockWriter struct {
+}
+
+func (m *MockWriter) Header() http.Header {
+	return http.Header{}
+}
+
+func (m *MockWriter) Write(bytes []byte) (int, error) {
+	return 0, nil
+}
+
+func (m *MockWriter) WriteHeader(i int) {
+
+}
+
 func TestRouterGroup_Group(t *testing.T) {
 	base := RouterGroup{
 		basePath: "/base",
@@ -31,14 +48,15 @@ func TestRouterGroup_Group(t *testing.T) {
 
 		post.GET("/detail", func(ctx *Context) {
 			fmt.Println("GET /post/detail handler1")
-
 		})
 	}
 	mockRequest, err := http.NewRequest(http.MethodGet, "/base/user", nil)
+	mockWriter := &MockWriter{}
+
 	require.NoError(t, err)
-	base.engine.ServeHTTP(nil, mockRequest)
+	base.engine.ServeHTTP(mockWriter, mockRequest)
 
 	mockRequest, err = http.NewRequest(http.MethodGet, "/base/post/detail", nil)
 	require.NoError(t, err)
-	base.engine.ServeHTTP(nil, mockRequest)
+	base.engine.ServeHTTP(mockWriter, mockRequest)
 }

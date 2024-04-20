@@ -22,7 +22,7 @@ func TestServer_e2e(t *testing.T) {
 			ctx.Resp.WriteHeader(400)
 			return
 		}
-		_ = ctx.RespJSON(200, map[string]string{"name": name})
+		_ = ctx.JSON(200, map[string]string{"name": name})
 	})
 
 	err := e.Start(":8080")

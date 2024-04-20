@@ -3,42 +3,78 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 )
 
-type Context struct {
-	Req         *http.Request
-	Resp        http.ResponseWriter
-	PathParams  map[string]string
-	queryValues url.Values
+const abortIndex int = math.MaxInt
 
+type Context struct {
+	Req          *http.Request
+	Resp         http.ResponseWriter
+	PathParams   map[string]string
+	queryCache   url.Values
 	MatchedRoute string
+	Values       map[string]any
+
+	index    int
+	handlers []HandleFunc
+
+	StatusCode int
+	RespData   []byte
 }
 
-func (c *Context) RespJSON(status int, val any) error {
+func newContext(w http.ResponseWriter, req *http.Request) *Context {
+	return &Context{
+		Req:    req,
+		Resp:   w,
+		index:  -1,
+		Values: make(map[string]any),
+	}
+}
+
+func (c *Context) Get(key string) (any, bool) {
+	val, ok := c.Values[key]
+	return val, ok
+}
+
+func (c *Context) Set(key string, val any) {
+	c.Values[key] = val
+}
+
+func (c *Context) Status(status int) {
+	c.StatusCode = status
+}
+
+func (c *Context) JSON(status int, val any) error {
 	data, err := json.Marshal(val)
 	if err != nil {
 		return err
 	}
 	c.Resp.Header().Set("Content-Type", "application/json")
-	c.Resp.WriteHeader(status)
-
-	_, err = c.Resp.Write(data)
-	return err
+	c.StatusCode = status
+	c.RespData = data
+	return nil
 }
 
-func (c *Context) RespString(status int, val string) error {
+func (c *Context) String(status int, val string) error {
 	c.Resp.Header().Set("Content-Type", "text/plain")
-	c.Resp.WriteHeader(status)
-
-	_, err := c.Resp.Write([]byte(val))
-	return err
+	c.StatusCode = status
+	c.RespData = []byte(val)
+	return nil
 }
 
-func (c *Context) RespJsonOK(val any) error {
-	return c.RespJSON(http.StatusOK, val)
+func (c *Context) HTML(status int, val string) error {
+	c.Resp.Header().Set("Content-Type", "text/html")
+	c.StatusCode = status
+	c.RespData = []byte(val)
+	return nil
+}
+
+func (c *Context) JsonOK(val any) error {
+	return c.JSON(http.StatusOK, val)
 }
 
 func (c *Context) SetCookie(cookie *http.Cookie) {
@@ -58,6 +94,10 @@ func (c *Context) BindJSON(val any) error {
 		return errors.New("nil pointer")
 	}
 	return json.NewDecoder(c.Req.Body).Decode(val)
+}
+
+func (c *Context) Param(key string) string {
+	return c.PathParams[key]
 }
 
 func (c *Context) FormValue(key string) (string, bool) {
@@ -81,10 +121,10 @@ func (c *Context) MultipartForm() (*multipart.Form, error) {
 }
 
 func (c *Context) QueryValue(key string) (string, bool) {
-	if c.queryValues == nil {
-		c.queryValues = c.Req.URL.Query()
+	if c.queryCache == nil {
+		c.queryCache = c.Req.URL.Query()
 	}
-	vals, ok := c.queryValues[key]
+	vals, ok := c.queryCache[key]
 	if !ok {
 		return "", false
 	}
@@ -97,9 +137,16 @@ func (c *Context) PathValue(key string) (string, bool) {
 }
 
 func (c *Context) Next() {
-
+	c.index++
+	for n := len(c.handlers); c.index < n; c.index++ {
+		c.handlers[c.index](c)
+	}
 }
 
 func (c *Context) Abort() {
+	c.index = abortIndex
+}
 
+func (c *Context) IsAborted() bool {
+	return c.index >= abortIndex
 }
