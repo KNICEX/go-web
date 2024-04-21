@@ -26,8 +26,7 @@ type Engine struct {
 
 var DefaultNotFoundHandler = func(ctx *Context) {
 	ctx.StatusCode = http.StatusNotFound
-	ctx.Resp.WriteHeader(http.StatusNotFound)
-	_, _ = ctx.Resp.Write([]byte("404 NOT FOUND"))
+	ctx.RespData = []byte("404 page not found")
 }
 
 func NewEngine(opts ...EngineOption) *Engine {
