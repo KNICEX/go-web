@@ -9,7 +9,7 @@ import (
 	"net/url"
 )
 
-const abortIndex int = math.MaxInt
+const abortIndex int = math.MaxInt8
 
 type Context struct {
 	Req          *http.Request
@@ -28,19 +28,24 @@ type Context struct {
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
 	return &Context{
-		Req:    req,
-		Resp:   w,
-		index:  -1,
-		Values: make(map[string]any),
+		Req:   req,
+		Resp:  w,
+		index: -1,
 	}
 }
 
 func (c *Context) Get(key string) (any, bool) {
+	if c.Values == nil {
+		return nil, false
+	}
 	val, ok := c.Values[key]
 	return val, ok
 }
 
 func (c *Context) Set(key string, val any) {
+	if c.Values == nil {
+		c.Values = make(map[string]any)
+	}
 	c.Values[key] = val
 }
 

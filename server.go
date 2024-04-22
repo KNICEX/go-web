@@ -65,13 +65,12 @@ func (e *Engine) serve(ctx *Context) {
 	info, ok := e.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
 	if !ok || info.node.handlers == nil {
 		e.NotFoundHandler(ctx)
-		return
+	} else {
+		ctx.MatchedRoute = info.node.route
+		ctx.PathParams = info.pathParams
+		ctx.handlers = info.node.handlers
+		ctx.Next()
 	}
-
-	ctx.MatchedRoute = info.node.route
-	ctx.PathParams = info.pathParams
-	ctx.handlers = info.node.handlers
-	ctx.Next()
 
 	e.flushResp(ctx)
 }

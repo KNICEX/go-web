@@ -23,8 +23,8 @@ type LoggerBuilder struct {
 	LogFunc func(log string)
 }
 
-func (l *LoggerBuilder) Build() HandleFunc {
-	if l.LogFunc != nil {
+func (l LoggerBuilder) Build() HandleFunc {
+	if l.LogFunc == nil {
 		l.LogFunc = DefaultLogFunc
 	}
 	return func(ctx *Context) {
@@ -59,7 +59,7 @@ type PrometheusBuilder struct {
 	Help      string
 }
 
-func (p *PrometheusBuilder) Build() HandleFunc {
+func (p PrometheusBuilder) Build() HandleFunc {
 	vector := prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: p.Namespace,
 		Subsystem: p.Subsystem,
@@ -101,7 +101,7 @@ func DefaultRecoverHandler(ctx *Context) {
 	ctx.RespData = []byte("Internal Server Error")
 }
 
-func (r *RecoverBuilder) Build() HandleFunc {
+func (r RecoverBuilder) Build() HandleFunc {
 	if r.LogFunc == nil {
 		r.LogFunc = DefaultLogFunc
 	}
