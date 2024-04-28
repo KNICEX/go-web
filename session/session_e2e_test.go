@@ -39,10 +39,10 @@ func TestNeedSession(t *testing.T) {
 			ctx.Status(http.StatusInternalServerError)
 		}
 
-		initSession.Set("name", name)
-		sessManager.SaveSession(ctx, initSession)
+		_ = initSession.Set("name", name)
+		_ = sessManager.SaveSession(ctx, initSession)
 
-		ctx.String(http.StatusOK, "login success")
+		_ = ctx.String(http.StatusOK, "login success")
 	})
 
 	e.GET("/logout", func(ctx *web.Context) {
@@ -51,9 +51,9 @@ func TestNeedSession(t *testing.T) {
 			ctx.Status(http.StatusUnauthorized)
 			return
 		}
-		sessManager.RemoveSession(ctx)
+		_ = sessManager.RemoveSession(ctx)
 
-		ctx.String(http.StatusOK, "logout success")
+		_ = ctx.String(http.StatusOK, "logout success")
 	})
 
 	user := e.Group("/user")
@@ -66,9 +66,10 @@ func TestNeedSession(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			ctx.String(http.StatusOK, "hello "+name.(string))
+			_ = ctx.String(http.StatusOK, "hello "+name.(string))
 		})
 	}
 
-	e.Start(":8080")
+	err := e.Start(":8080")
+	t.Log(err)
 }

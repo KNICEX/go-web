@@ -2,14 +2,19 @@ package session
 
 import "net/http"
 
+// Propagator 负责将session id 从http request中提取，注入到http response中
 type Propagator interface {
+	// Inject 将session id注入到http response中
 	Inject(id string, writer http.ResponseWriter) error
+	// Extract 从http request中提取session id
 	Extract(req *http.Request) (string, error)
+	// Clean 清除http response中的session id
 	Clean(writer http.ResponseWriter) error
 }
 
 type CookiePropagatorOption func(propagator *CookiePropagator)
 
+// CookiePropagator 基于cookie的session id传递器
 type CookiePropagator struct {
 	cookieName   string
 	cookieOption func(cookie *http.Cookie)

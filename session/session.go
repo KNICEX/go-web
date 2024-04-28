@@ -18,9 +18,9 @@ type Session interface {
 	Modified() bool
 }
 
-type Builder func(store Store, id string) Session
+type Creator func(store Store, id string) Session
 
-func DefaultBuilder(store Store, id string) Session {
+func DefaultCreator(store Store, id string) Session {
 	return &session{
 		Id:   id,
 		Data: make(map[string]any),

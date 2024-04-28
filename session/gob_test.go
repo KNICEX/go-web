@@ -54,7 +54,7 @@ func TestGobSession(t *testing.T) {
 	err := gob.NewEncoder(encodedBuf).Encode(a)
 	require.NoError(t, err)
 
-	b := DefaultBuilder(nil, "")
+	b := DefaultCreator(nil, "")
 	typeB := reflect.TypeOf(b)
 	valB := reflect.New(typeB).Elem()
 	decodedBuf := bytes.NewBuffer(encodedBuf.Bytes())

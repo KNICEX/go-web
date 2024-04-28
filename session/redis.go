@@ -9,10 +9,11 @@ import (
 	"time"
 )
 
+// RedisStore 基于Redis的Session存储
 type RedisStore struct {
 	cmd            redis.Cmdable
 	exp            time.Duration
-	sessionBuilder Builder
+	sessionCreator Creator
 	serializer     Serializer
 }
 
@@ -54,13 +55,13 @@ func NewRedisStore(cmd redis.Cmdable, expiration time.Duration, opts ...StoreOpt
 	res := &RedisStore{
 		exp:            expiration,
 		cmd:            cmd,
-		sessionBuilder: DefaultBuilder,
+		sessionCreator: DefaultCreator,
 		serializer:     &DefaultSerializer{},
 	}
 	for _, opt := range opts {
 		opt(res)
 	}
-	res.serializer.RegisterType(res.sessionBuilder(res, ""))
+	res.serializer.RegisterType(res.sessionCreator(res, ""))
 
 	return res
 }
@@ -82,7 +83,7 @@ func (r *RedisStore) Set(ctx context.Context, sess Session) error {
 }
 
 func (r *RedisStore) Generate(ctx context.Context, id string) (Session, error) {
-	sess := r.sessionBuilder(r, id)
+	sess := r.sessionCreator(r, id)
 	err := r.Set(ctx, sess)
 	if err != nil {
 		return nil, err

@@ -2,14 +2,22 @@ package session
 
 import (
 	"github.com/KNICEX/go-web"
+	"time"
 )
 
-const sessionKey = "session"
+const DefaultCtxSessionKey = "session-key"
 
+// Manager session管理器，统筹session的生成、获取、删除等操作
 type Manager struct {
 	Propagator    Propagator
 	Store         Store
 	CtxSessionKey string
+}
+
+var DefaultManager = &Manager{
+	Propagator:    NewCookiePropagator(),
+	Store:         NewMemoStore(time.Minute * 30),
+	CtxSessionKey: DefaultCtxSessionKey,
 }
 
 func (m *Manager) GetSession(ctx *web.Context) (Session, error) {
@@ -74,4 +82,24 @@ func (m *Manager) SaveSession(ctx *web.Context, sess Session) error {
 	}
 	ctx.Set(m.CtxSessionKey, sess)
 	return nil
+}
+
+func GetSession(ctx *web.Context) (Session, error) {
+	return DefaultManager.GetSession(ctx)
+}
+
+func InitSession(ctx *web.Context, sessId string) (Session, error) {
+	return DefaultManager.InitSession(ctx, sessId)
+}
+
+func RemoveSession(ctx *web.Context) error {
+	return DefaultManager.RemoveSession(ctx)
+}
+
+func RefreshSession(ctx *web.Context) error {
+	return DefaultManager.RefreshSession(ctx)
+}
+
+func SaveSession(ctx *web.Context, sess Session) error {
+	return DefaultManager.SaveSession(ctx, sess)
 }

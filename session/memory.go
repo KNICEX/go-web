@@ -9,14 +9,14 @@ import (
 type MemoStore struct {
 	store          cache.ICache
 	exp            time.Duration
-	sessionBuilder Builder
+	sessionCreator Creator
 }
 
 func NewMemoStore(expiration time.Duration, opts ...StoreOption) *MemoStore {
 	res := &MemoStore{
 		store:          cache.NewMemCache(),
 		exp:            expiration,
-		sessionBuilder: DefaultBuilder,
+		sessionCreator: DefaultCreator,
 	}
 	for _, opt := range opts {
 		opt(res)
@@ -45,7 +45,7 @@ func (m *MemoStore) Set(ctx context.Context, sess Session) error {
 }
 
 func (m *MemoStore) Generate(ctx context.Context, id string) (Session, error) {
-	s := m.sessionBuilder(m, id)
+	s := m.sessionCreator(m, id)
 	ok := m.store.Set(id, s, cache.WithEx(m.exp))
 	if !ok {
 		return nil, ErrSaveFailed

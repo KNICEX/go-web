@@ -1,6 +1,7 @@
 package web
 
 import (
+	"log"
 	"net"
 	"net/http"
 )
@@ -78,7 +79,10 @@ func (e *Engine) serve(ctx *Context) {
 func (e *Engine) flushResp(ctx *Context) {
 	ctx.Resp.WriteHeader(ctx.StatusCode)
 	if ctx.RespData != nil {
-		_, _ = ctx.Resp.Write(ctx.RespData)
+		_, err := ctx.Resp.Write(ctx.RespData)
+		if err != nil {
+			log.Println("write response error:", err)
+		}
 	}
 }
 
