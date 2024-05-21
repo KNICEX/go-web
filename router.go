@@ -14,7 +14,7 @@ type node struct {
 	route    string
 	children []*node
 	// 通配符
-	startChild *node
+	starChild  *node
 	paramChild *node
 	handlers   []HandleFunc
 }
@@ -99,7 +99,7 @@ func (n *node) childOrCreate(seg string) *node {
 	}
 
 	if seg[0] == ':' {
-		if n.startChild != nil {
+		if n.starChild != nil {
 			panic("can't register wildcard and param node at the same time")
 		}
 		if n.paramChild != nil {
@@ -113,7 +113,7 @@ func (n *node) childOrCreate(seg string) *node {
 			path: seg,
 		}
 		if seg == "*" {
-			n.startChild = child
+			n.starChild = child
 		} else if seg[0] == ':' {
 			n.paramChild = child
 		} else {
@@ -152,7 +152,7 @@ func (n *node) childOf(seg string) (*node, bool, bool) {
 			return n.paramChild, true, true
 		}
 
-		return n.startChild, false, n.startChild != nil
+		return n.starChild, false, n.starChild != nil
 	}
 
 	for _, child := range n.children {
@@ -165,5 +165,5 @@ func (n *node) childOf(seg string) (*node, bool, bool) {
 	if n.paramChild != nil {
 		return n.paramChild, true, true
 	}
-	return n.startChild, false, n.startChild != nil
+	return n.starChild, false, n.starChild != nil
 }

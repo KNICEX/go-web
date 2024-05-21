@@ -115,7 +115,7 @@ func TestRouter_addRouter(t *testing.T) {
 					{
 						path:     "order",
 						handlers: []HandleFunc{mockHandler},
-						startChild: &node{
+						starChild: &node{
 							path:     "*",
 							handlers: []HandleFunc{mockHandler},
 						},
@@ -198,8 +198,8 @@ func (n *node) equal(y *node) (string, bool) {
 		return "handlers 数量不相同", false
 	}
 
-	if n.startChild != nil {
-		msg, equal := n.startChild.equal(y.startChild)
+	if n.starChild != nil {
+		msg, equal := n.starChild.equal(y.starChild)
 		if !equal {
 			return msg, false
 		}
